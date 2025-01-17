@@ -20,4 +20,10 @@ public class Category {
     private String description;
 
     private String ownerId;
+
+    public Category(CategoryDTO categoryDTO){
+        this.title = categoryDTO.title();
+        this.description = categoryDTO.description();
+        this.ownerId = categoryDTO.ownerId();
+    }
 }
