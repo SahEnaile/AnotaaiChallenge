@@ -1,51 +1,68 @@
 package com.sarah.anotaai.services;
 
 import com.sarah.anotaai.domain.category.CategoryDTO;
+import com.sarah.anotaai.domain.category.CategoryResponseDTO;
 import com.sarah.anotaai.domain.category.exceptions.CategoryNotFoundException;
 import com.sarah.anotaai.repositories.CategoryRepository;
 import com.sarah.anotaai.domain.category.Category;
+import com.sarah.anotaai.services.aws.AwsSnsService;
+import com.sarah.anotaai.services.aws.MessageDTO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class CategoryService {
+    private final CategoryRepository repository;
+    private final AwsSnsService snsService;
 
-    private CategoryRepository repository;
+    public CategoryResponseDTO create(CategoryDTO categoryData) {
+        Category newCategory = new Category();
+        newCategory.setTitle(categoryData.title());
+        newCategory.setDescription(categoryData.description());
 
-    public CategoryService(CategoryRepository repository){
-        this.repository = repository;
-    }
-    public Category create(CategoryDTO categoryData){
-        Category newCategory = new Category(categoryData);
-        this.repository.save(newCategory);
-        return newCategory;
-    }
+        repository.save(newCategory);
+        snsService.publish(new MessageDTO(newCategory.toString()));
 
-    public List<Category> getAll(){
-        return this.repository.findAll();
+        return CategoryResponseDTO.fromEntity(newCategory);
     }
 
-    public Optional<Category> getById(String id){
-        return this.repository.findById(id);
+    public List<CategoryResponseDTO> getAll() {
+        return repository.findAll()
+                .stream()
+                .map(CategoryResponseDTO::fromEntity)
+                .toList();
     }
-    public Category update(String id, CategoryDTO categoryData ){
-        Category category = this.repository.findById(id)
+
+    public CategoryResponseDTO getById(String id) {
+        return repository.findById(id)
+                .map(CategoryResponseDTO::fromEntity)
+                .orElseThrow(CategoryNotFoundException::new);
+    }
+
+    public CategoryResponseDTO update(String id, CategoryDTO categoryData) {
+        Category category = repository.findById(id)
                 .orElseThrow(CategoryNotFoundException::new);
 
-        if(!categoryData.title().isEmpty()) category.setTitle(categoryData.title());
-        if(!categoryData.description().isEmpty()) category.setDescription(categoryData.description());
+        if (StringUtils.hasText(categoryData.title())) {
+            category.setTitle(categoryData.title());
+        }
+        if (StringUtils.hasText(categoryData.description())) {
+            category.setDescription(categoryData.description());
+        }
 
-        this.repository.save(category);
+        repository.save(category);
+        snsService.publish(new MessageDTO(category.toString()));
 
-        return category;
+        return CategoryResponseDTO.fromEntity(category);
     }
-    public void delete(String id){
-        Category category = this.repository.findById(id)
+
+    public void delete(String id) {
+        Category category = repository.findById(id)
                 .orElseThrow(CategoryNotFoundException::new);
-
-        this.repository.delete(category);
+        repository.delete(category);
     }
-
 }

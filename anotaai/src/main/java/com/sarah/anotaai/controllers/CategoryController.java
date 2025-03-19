@@ -1,8 +1,9 @@
 package com.sarah.anotaai.controllers;
 
-import com.sarah.anotaai.domain.category.Category;
 import com.sarah.anotaai.domain.category.CategoryDTO;
+import com.sarah.anotaai.domain.category.CategoryResponseDTO;
 import com.sarah.anotaai.services.CategoryService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,35 +11,33 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/category")
+@RequiredArgsConstructor
 public class CategoryController {
-
     private final CategoryService service;
 
-    public CategoryController(CategoryService service) {
-        this.service = service;
-    }
-
     @PostMapping
-    public ResponseEntity<Category> create(@RequestBody CategoryDTO categoryData) {
-        Category newCategory = this.service.create(categoryData);
-        return ResponseEntity.ok().body(newCategory);
+    public ResponseEntity<CategoryResponseDTO> create(@RequestBody CategoryDTO categoryData) {
+        return ResponseEntity.ok(service.create(categoryData));
     }
 
     @GetMapping
-    public ResponseEntity<List<Category>> getAll() {
-        List<Category> categories = this.service.getAll();
-        return ResponseEntity.ok().body(categories);
+    public ResponseEntity<List<CategoryResponseDTO>> getAll() {
+        return ResponseEntity.ok(service.getAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoryResponseDTO> getById(@PathVariable String id) {
+        return ResponseEntity.ok(service.getById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Category> update(@PathVariable("id") String id, @RequestBody CategoryDTO categoryData) {
-        Category updatedCategory = this.service.update(id, categoryData);
-        return ResponseEntity.ok().body(updatedCategory);
+    public ResponseEntity<CategoryResponseDTO> update(@PathVariable String id, @RequestBody CategoryDTO categoryData) {
+        return ResponseEntity.ok(service.update(id, categoryData));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable("id") String id) {
-        this.service.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        service.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,8 +1,8 @@
 package controllers;
 
 import com.sarah.anotaai.controllers.CategoryController;
-import com.sarah.anotaai.domain.category.Category;
 import com.sarah.anotaai.domain.category.CategoryDTO;
+import com.sarah.anotaai.domain.category.CategoryResponseDTO;
 import com.sarah.anotaai.services.CategoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,49 +25,50 @@ class CategoryControllerTest {
     private CategoryController categoryController;
 
     private CategoryDTO categoryDTO;
-    private Category category;
+    private CategoryResponseDTO categoryResponseDTO;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        categoryDTO = new CategoryDTO("title", "description", "ownerId");
-        category = new Category(categoryDTO);
-        category.setId("1");
+        categoryDTO = new CategoryDTO("title", "description", "test-owner-id"); // Adicionando ownerId
+        categoryResponseDTO = new CategoryResponseDTO("1", "title", "description");
     }
 
     @Test
     void testCreateCategory() {
-        when(categoryService.create(any(CategoryDTO.class))).thenReturn(category);
+        when(categoryService.create(any(CategoryDTO.class))).thenReturn(categoryResponseDTO);
 
-        ResponseEntity<Category> response = categoryController.create(categoryDTO);
+        ResponseEntity<CategoryResponseDTO> response = categoryController.create(categoryDTO);
 
         assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(category.getId(), response.getBody().getId());
+        assertEquals(201, response.getStatusCodeValue()); // Ajustado para Created (201)
+        assertEquals(categoryResponseDTO.id(), response.getBody().id());
         verify(categoryService, times(1)).create(any(CategoryDTO.class));
     }
 
     @Test
     void testGetAllCategories() {
-        when(categoryService.getAll()).thenReturn(List.of(category));
+        when(categoryService.getAll()).thenReturn(List.of(categoryResponseDTO));
 
-        ResponseEntity<List<Category>> response = categoryController.getAll();
+        ResponseEntity<List<CategoryResponseDTO>> response = categoryController.getAll();
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCodeValue());
         assertFalse(response.getBody().isEmpty());
+        assertEquals(1, response.getBody().size());
+        assertEquals(categoryResponseDTO.id(), response.getBody().get(0).id());
         verify(categoryService, times(1)).getAll();
     }
 
     @Test
     void testUpdateCategory() {
-        when(categoryService.update(anyString(), any(CategoryDTO.class))).thenReturn(category);
+        when(categoryService.update(anyString(), any(CategoryDTO.class))).thenReturn(categoryResponseDTO);
 
-        ResponseEntity<Category> response = categoryController.update("1", categoryDTO);
+        ResponseEntity<CategoryResponseDTO> response = categoryController.update("1", categoryDTO);
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCodeValue());
-        assertEquals(category.getId(), response.getBody().getId());
+        assertEquals(categoryResponseDTO.id(), response.getBody().id());
         verify(categoryService, times(1)).update(anyString(), any(CategoryDTO.class));
     }
 
@@ -79,6 +80,6 @@ class CategoryControllerTest {
 
         assertNotNull(response);
         assertEquals(204, response.getStatusCodeValue());
-        verify(categoryService, times(1)).delete(anyString());
+        verify(categoryService, times(1)).delete("1"); // Garante que o método foi chamado corretamente
     }
 }

@@ -51,6 +51,11 @@
 			<version>4.5.0</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20231013</version>
+		</dependency>
 		<!-- Dependência do dotenv -->
 		<dependency>
 			<groupId>io.github.cdimascio</groupId>
@@ -69,6 +74,12 @@
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-sns</artifactId>
+			<version>1.12.683</version>
+		</dependency>
+
 	</dependencies>
 	<build>
 		<plugins>

@@ -1,61 +1,84 @@
 package com.sarah.anotaai.services;
 
-import com.sarah.anotaai.domain.category.Category;
-import com.sarah.anotaai.domain.category.CategoryDTO;
-import com.sarah.anotaai.domain.category.exceptions.CategoryNotFoundException;
+import com.sarah.anotaai.domain.category.CategoryResponseDTO;
 import com.sarah.anotaai.domain.product.Product;
 import com.sarah.anotaai.domain.product.ProductDTO;
+import com.sarah.anotaai.domain.product.ProductResponseDTO;
 import com.sarah.anotaai.domain.product.exceptions.ProductNotFoundException;
-import com.sarah.anotaai.repositories.CategoryRepository;
 import com.sarah.anotaai.repositories.ProductRepository;
+import com.sarah.anotaai.services.aws.AwsSnsService;
+import com.sarah.anotaai.services.aws.MessageDTO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ProductService {
-    private CategoryService categoryService;
+    private final CategoryService categoryService;
+    private final ProductRepository repository;
+    private final AwsSnsService snsService;
 
-    private ProductRepository repository;
+    // Criar produto e retornar DTO
+    public ProductResponseDTO create(ProductDTO productData) {
+        // Obtém a categoria diretamente como DTO
+        CategoryResponseDTO category = categoryService.getById(productData.categoryId());
 
-    public ProductService(ProductRepository  productRepository, CategoryService categoryService){
-        this.repository = productRepository;
-        this.categoryService = categoryService;
-    }
-    public Product create(ProductDTO productData){
-        Category category = this.categoryService.getById(productData.categoryId())
-                .orElseThrow(CategoryNotFoundException::new);
         Product newProduct = new Product(productData);
-        newProduct.setCategory(category);
-        this.repository.save(newProduct);
-        return newProduct;
+        repository.save(newProduct);
+
+        snsService.publish(new MessageDTO(newProduct.toString()));
+
+        return ProductResponseDTO.fromEntity(newProduct);
     }
 
-    public List<Product> getAll(){
-        return this.repository.findAll();
+    // Buscar todos os produtos e retornar uma lista de DTOs
+    public List<ProductResponseDTO> getAll() {
+        return repository.findAll()
+                .stream()
+                .map(ProductResponseDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
-    public Product update(String id, ProductDTO productData){
-        Product product = this.repository.findById(id)
+    // Buscar produto por ID e retornar DTO
+    public ProductResponseDTO getById(String id) {
+        return repository.findById(id)
+                .map(ProductResponseDTO::fromEntity)
+                .orElseThrow(ProductNotFoundException::new);
+    }
+
+    // Atualizar produto e retornar DTO atualizado
+    public ProductResponseDTO update(String id, ProductDTO productData) {
+        Product product = repository.findById(id)
                 .orElseThrow(ProductNotFoundException::new);
 
-        if(productData.categoryId() != null){
-            this.categoryService.getById(productData.categoryId())
-                    .ifPresent(product::setCategory);
+        if (StringUtils.hasText(productData.title())) {
+            product.setTitle(productData.title());
+        }
+        if (StringUtils.hasText(productData.description())) {
+            product.setDescription(productData.description());
+        }
+        if (productData.price() != null) {
+            product.setPrice(productData.price());
+        }
+        if (productData.categoryId() != null) {
+            categoryService.getById(productData.categoryId());
+            product.setCategory(productData.categoryId());
         }
 
-        if(!productData.title().isEmpty()) product.setTitle(productData.title());
-        if(!productData.description().isEmpty()) product.setDescription(productData.description());
-        if(!(productData.price() == null)) product.setPrice(productData.price());
+        repository.save(product);
+        snsService.publish(new MessageDTO(product.toString()));
 
-        this.repository.save(product);
-
-        return product;
+        return ProductResponseDTO.fromEntity(product);
     }
-    public void delete(String id){
-        Product product = this.repository.findById(id)
-                .orElseThrow(ProductNotFoundException::new);
 
-        this.repository.delete(product);
+    // Deletar produto por ID
+    public void delete(String id) {
+        Product product = repository.findById(id)
+                .orElseThrow(ProductNotFoundException::new);
+        repository.delete(product);
     }
 }
